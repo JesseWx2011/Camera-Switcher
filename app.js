@@ -30,13 +30,14 @@ function createCameraCell(index) {
     let videoHtml = '';
     const url = cameras[index].url;
     if (url) {
-        videoHtml = `<video id="video-${index}" class="camera-video-placeholder" muted playsinline autoplay style="width:100%;height:100%;background:#000;"></video>`;
+        videoHtml = `<video id="video-${index}" class="camera-video-placeholder" muted playsinline autoplay style="width:100%;height:calc(100% - 41px);background:#000;"></video>`;
     } else {
         videoHtml = `<div class="camera-video-placeholder"></div>`;
     }
     cell.innerHTML = `
         ${videoHtml}
-        <div class="camera-name">${cameras[index].name}</div>
+        <div class="camera-name-background"></div>
+        <div class="camera-name-text">${cameras[index].name}</div>
         <div class="popup-menu" id="popup-${index}">
             <label style='color:#fff;font-size:14px;'>Camera Name</label>
             <input type="text" id="name-input-${index}" value="${cameras[index].name}" style="width:100%;margin-bottom:8px;">
