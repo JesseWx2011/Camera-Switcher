@@ -43,6 +43,8 @@ function createCameraCell(index) {
             <input type="text" id="name-input-${index}" value="${cameras[index].name}" style="width:100%;margin-bottom:8px;">
             <label style='color:#fff;font-size:14px;'>m3u8/mpd Link</label>
             <input type="text" id="url-input-${index}" value="${cameras[index].url}" style="width:100%;margin-bottom:12px;">
+            <label style='color:#fff;font-size:14px;'>API URL (optional)</label>
+            <input type="text" id="api-input-${index}" value="${cameras[index].apiUrl || ''}" style="width:100%;margin-bottom:12px;">
             <button onclick="saveCameraSettings(${index})">Save</button>
             <button onclick="testCameraUrl(${index})">Test Link</button>
         </div>
@@ -92,12 +94,28 @@ function closeAllPopups() {
 document.body.addEventListener('click', closeAllPopups);
 overlay.addEventListener('click', closeAllPopups);
 
-window.saveCameraSettings = function(index) {
+window.saveCameraSettings = async function(index) {
     const nameInput = document.getElementById(`name-input-${index}`);
     const urlInput = document.getElementById(`url-input-${index}`);
+    const apiInput = document.getElementById(`api-input-${index}`);
     if (!nameInput || !urlInput) return;
-    cameras[index].name = nameInput.value.trim() || `Camera ${index + 1}`;
-    cameras[index].url = urlInput.value.trim();
+    let name = nameInput.value.trim() || `Camera ${index + 1}`;
+    let url = urlInput.value.trim();
+    let apiUrl = apiInput ? apiInput.value.trim() : '';
+    if (apiUrl && apiUrl.includes('data2.weatherwise.app')) {
+        try {
+            const res = await fetch(apiUrl);
+            const data = await res.json();
+            if (data.features && data.features.length > 0) {
+                const props = data.features[0].properties;
+                name = `${props.name}, ${props.address}`;
+                url = props.video_source;
+            }
+        } catch (e) { alert('API fetch failed: ' + e.message); }
+    }
+    cameras[index].name = name;
+    cameras[index].url = url;
+    cameras[index].apiUrl = apiUrl;
     saveCameras(cameras);
     renderGrid();
     closeAllPopups();
@@ -122,5 +140,30 @@ window.testCameraUrl = function(index) {
             alert('Error accessing camera URL: ' + error.message);
         });
 };
+renderGrid();
 
-renderGrid(); 
+// Auto-refresh Weatherwise API cameras every 2 minutes
+setInterval(async () => {
+    let updated = false;
+    for (let i = 0; i < cameras.length; i++) {
+        const apiUrl = cameras[i].apiUrl;
+        if (apiUrl && apiUrl.includes('data2.weatherwise.app')) {
+            try {
+                const res = await fetch(apiUrl);
+                const data = await res.json();
+                if (data.features && data.features.length > 0) {
+                    const props = data.features[0].properties;
+                    cameras[i].name = `${props.name}, ${props.address}`;
+                    cameras[i].url = props.video_source;
+                    updated = true;
+                }
+            } catch (e) {
+                // Optionally log error
+            }
+        }
+    }
+    if (updated) {
+        saveCameras(cameras);
+        renderGrid();
+    }
+}, 120000);

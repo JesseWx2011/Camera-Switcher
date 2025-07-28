@@ -11,7 +11,8 @@ background: #CA0000;
 .camera-video-placeholder {
 position: absolute;
 width: 100%;
-height: calc(100% - 41px);
+height: 95%;
+margin-top: 23px;
 top: 0;
 background: #000000;
 }

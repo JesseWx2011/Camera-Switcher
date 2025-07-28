@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera 1</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="referrer" content="origin">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+            background: #181818;
+        }
+        .banner {
+            width: 100vw;
+            height: 63px;
+            background: #CA0000;
+            color: #fff;
+            font-size: 26px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            position: fixed;
+            text-align: left;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            letter-spacing: 1px;
+            padding-left: 32px;
+        }
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+            width: 100vw;
+            height: calc(100vh - 41px);
+            margin: 0;
+            margin-top: 41px;
+        }
+        .camera-cell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .camera-name-background {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 41px;
+            background: rgba(0,0,0,0.7);
+        }
+        .camera-name-text {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 41px;
+            color: #fff;
+            font-size: 20px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner" id="cameraBanner">Camera 1</div>
+    <div style="width:100vw;display:flex;justify-content:flex-end;padding:8px 32px 0 0;">
+        <input type="text" id="apiInput" placeholder="API URL (optional)" style="width:340px;padding:8px 12px;border-radius:4px;border:none;font-size:15px;">
+        <button id="apiLoadBtn" style="margin-left:8px;padding:8px 18px;background:#CA0000;color:#fff;border:none;border-radius:4px;font-weight:800;font-family:'Montserrat';cursor:pointer;">Load API</button>
+    </div>
+    <div class="camera-grid">
+        <div class="camera-cell">
+            <video id="video-0" class="camera-video-placeholder" muted playsinline autoplay style="width:100%;height:calc(100% - 41px);background:#000;"></video>
+            <div class="camera-name-background"></div>
+            <div class="camera-name-text" id="cameraNameBottom"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+    <script>
+    // Camera 1 preset from app.js
+    let camera1Url = "";
+    let camera1Name = "Camera 1";
+    let apiUrl = "";
+    try {
+        const saved = localStorage.getItem('cameraAppCameras');
+        if (saved) {
+            const arr = JSON.parse(saved);
+            if (arr && arr[0]) {
+                if (arr[0].url) camera1Url = arr[0].url;
+                if (arr[0].name) camera1Name = arr[0].name;
+                if (arr[0].apiUrl) apiUrl = arr[0].apiUrl;
+            }
+        }
+    } catch {}
+    function setupVideoPlayer(videoId, url) {
+        const video = document.getElementById(videoId);
+        if (!video) return;
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+        } else if (window.Hls) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+        } else {
+            video.outerHTML = '<div style="color:#fff;text-align:center;padding:80px 0;">HLS not supported</div>';
+        }
+    }
+    function updateCameraFromAPI(apiUrl) {
+        if (apiUrl && apiUrl.includes('data2.weatherwise.app')) {
+            fetch(apiUrl)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        const props = data.features[0].properties;
+                        camera1Name = `${props.name}, ${props.address}`;
+                        camera1Url = props.video_source;
+                        document.getElementById('cameraBanner').textContent = camera1Name;
+                        document.getElementById('cameraNameBottom').textContent = camera1Name;
+                        setupVideoPlayer('video-0', camera1Url);
+                    }
+                })
+                .catch(e => alert('API fetch failed: ' + e.message));
+        }
+    }
+    // Set camera name in banner and bottom overlay
+    document.getElementById('cameraBanner').textContent = camera1Name;
+    document.getElementById('cameraNameBottom').textContent = camera1Name;
+    if (camera1Url) {
+        setupVideoPlayer('video-0', camera1Url);
+    }
+    // API input event
+    document.getElementById('apiLoadBtn').onclick = function() {
+        const input = document.getElementById('apiInput').value.trim();
+        if (input) updateCameraFromAPI(input);
+    };
+    </script>
+</body>
+</html>
